@@ -3,15 +3,16 @@
   "private": true,
   "version": "6.0.0",
   "type": "module",
+  "packageManager": "pnpm@11.1.1",
   "scripts": {
     "build:calendar": "node scripts/build-calendar.js",
-    "watch:calendar": "nodemon --watch src/data/calendar-2083 --ext json --exec \"npm run build:calendar\"",
-    "predev": "npm run build:calendar",
-    "dev": "concurrently \"npm run watch:calendar\" \"vite\"",
-    "prebuild": "npm run build:calendar",
+    "watch:calendar": "nodemon --watch src/data/calendar-2083 --ext json --exec \"pnpm build:calendar\"",
+    "predev": "pnpm build:calendar",
+    "dev": "concurrently \"pnpm watch:calendar\" \"vite\"",
+    "prebuild": "pnpm build:calendar",
     "build": "vite build",
-    "prewatch": "npm run build:calendar",
-    "watch": "concurrently \"npm run watch:calendar\" \"vite build --watch\"",
+    "prewatch": "pnpm build:calendar",
+    "watch": "concurrently \"pnpm watch:calendar\" \"vite build --watch\"",
     "preview": "vite preview"
   },
   "devDependencies": {
