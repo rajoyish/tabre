@@ -8,6 +8,23 @@ Transform your new tab into a powerful and aesthetically pleasing Nepali calenda
 
 ---
 
+## 📝 What's New in v6.1.0
+
+- **Holiday notifications now reach you on any tab.** Holiday and custom event notifications fire on app start, when the tab becomes visible, and at midnight rollover, regardless of which tab you are on.
+- **Reliable OS-level reminder alarms.** Reminders now wake the extension service worker on time even when Chrome is minimized or the new tab is closed, so the system notification never gets dropped.
+- **Date modal shows the correct relative day.** Fixed an ambiguous month lookup that made the “X दिन बाँकी / अघि” badge compute against the wrong date for many calendar cells.
+- **Preeti to Unicode fixes.** Sequences like `l:qm` now correctly produce `स्क्रि` (was `स्कि्र`). The reverse conversion is also fixed for multi-consonant conjuncts.
+- **Roman to Nepali typing improvements.**
+  - Multi-line typing works: Enter inserts a new line, Space and Tab commit a suggestion, arrow keys navigate.
+  - Press `.` to insert `।`. Press `.` again immediately to swap it back to a literal period.
+  - Suggestion popup is mobile-friendly with a clamped, scrollable layout.
+  - Keyboard hint sits under the textarea instead of inside the popup, with light and dark glass styling.
+- **Wallpaper refresh.** Two backgrounds replaced and five new ones added; cycling adapts automatically.
+- **Smaller notification sound asset.**
+- **Project tooling.** Migrated from npm to pnpm.
+
+---
+
 ## ✨ Key Features
 
 ### 📅 Calendar & Time Tracking

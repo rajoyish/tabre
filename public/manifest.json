@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tabre: Nepali Calendar New Tab",
-  "version": "6.0.0",
+  "version": "6.1.0",
   "description": "Transform your new tab with a Nepali calendar, BS/AD converter, Preeti/Unicode/Roman typing tools, and reminders",
   "chrome_url_overrides": {
     "newtab": "index.html"
