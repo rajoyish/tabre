@@ -10,12 +10,14 @@ import { updateDateBadge } from "./components/DateBadgeRenderer/DateBadgeRendere
 import { initBookmarks } from "./components/Bookmarks/Bookmarks.js";
 import { getNepaliDateForAd } from "./utils/calendarUtils.js";
 import { initNepaliConverter } from "./components/NepaliConverter/NepaliConverter.js";
+import { checkAndNotifyTodayEvents } from "./components/UpcomingEvents/notifications.js";
 
 window.getNepaliDateForAd = getNepaliDateForAd;
 
 const taskReminder = createTaskReminder();
 let updateInterval;
 let nepaliConverterInstance = null;
+let midnightTimeoutId = null;
 
 function startPeriodicUpdates() {
   if (!updateInterval) {
@@ -30,6 +32,32 @@ function stopPeriodicUpdates() {
     clearInterval(updateInterval);
     updateInterval = null;
   }
+}
+
+function clearMidnightTimer() {
+  if (midnightTimeoutId !== null) {
+    clearTimeout(midnightTimeoutId);
+    midnightTimeoutId = null;
+  }
+}
+
+function scheduleMidnightCheck() {
+  clearMidnightTimer();
+  const now = new Date();
+  const nextMidnight = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+    0,
+    0,
+    5,
+  );
+  const delay = Math.max(1000, nextMidnight.getTime() - now.getTime());
+  midnightTimeoutId = setTimeout(() => {
+    midnightTimeoutId = null;
+    checkAndNotifyTodayEvents();
+    if (!document.hidden) scheduleMidnightCheck();
+  }, delay);
 }
 
 function setupTabActivation(
@@ -117,9 +145,12 @@ function setupEventHandlers() {
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       stopPeriodicUpdates();
+      clearMidnightTimer();
     } else {
       initTodayCalendar(updateDateBadge);
       startPeriodicUpdates();
+      checkAndNotifyTodayEvents();
+      scheduleMidnightCheck();
     }
   });
 }
@@ -141,6 +172,9 @@ async function initApp() {
   if (settingsElement) {
     initSettingsDropdown(settingsElement);
   }
+
+  checkAndNotifyTodayEvents();
+  scheduleMidnightCheck();
 }
 
 document.addEventListener("DOMContentLoaded", initApp);
