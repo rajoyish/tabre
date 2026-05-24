@@ -264,7 +264,7 @@ export const convertToUnicode = (textToConvert) => {
 
   convertedText = convertedText
     .replace(/l(.)/g, "$1ि")
-    .replace(/ि्(.)/g, "्$1ि");
+    .replace(/ि((?:्[क-ह])+)/g, "$1ि");
 
   const rephRegex =
     /((?:[^\sािीुूृेैोौं:ँॅ्]्)*[^\sािीुूृेैोौं:ँॅ्])([ािीुूृेैोौं:ँॅ]*){/g;
@@ -307,7 +307,7 @@ export const convertToPreeti = (textToConvert) => {
 
   processedText = processedText
     .replace(/र्([क-ह][ािीुूृेैोौं:ँॅ]*)/g, "$1{")
-    .replace(/(.)ि/g, "l$1");
+    .replace(/((?:[क-ह]्)*[क-ह])ि/g, "l$1");
 
   return processedText.replace(
     unicodeRegex,

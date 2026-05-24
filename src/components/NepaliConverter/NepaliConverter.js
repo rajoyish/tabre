@@ -13,12 +13,17 @@ export const initNepaliConverter = (containerId) => {
   let cursorPosition = 0;
   let alertTimeout = null;
   let debounceTimer = null;
+  let storageWriteTimer = null;
+  let pendingStorageValue = null;
+  let pendingStorageKey = null;
+  let activeFetchToken = 0;
   let currentSuggestions = [];
   let activeIndex = -1;
   let currentMode = "preeti2unicode";
   let isManualOffline = false;
   let dom = {};
   let phoneticFallback = null;
+  let caretMirror = null;
 
   const render = () => {
     container.innerHTML = `
@@ -163,12 +168,43 @@ export const initNepaliConverter = (containerId) => {
     }
   };
 
+  const STORAGE_FLUSH_MS = 200;
+  const flushStorageWrite = () => {
+    if (pendingStorageKey !== null) {
+      try {
+        localStorage.setItem(pendingStorageKey, pendingStorageValue ?? "");
+      } catch {}
+      pendingStorageKey = null;
+      pendingStorageValue = null;
+    }
+    if (storageWriteTimer) {
+      clearTimeout(storageWriteTimer);
+      storageWriteTimer = null;
+    }
+  };
+
+  const queueStorageWrite = (key, value) => {
+    pendingStorageKey = key;
+    pendingStorageValue = value;
+    if (storageWriteTimer) clearTimeout(storageWriteTimer);
+    storageWriteTimer = setTimeout(flushStorageWrite, STORAGE_FLUSH_MS);
+  };
+
   const handleCursorUpdate = () => {
     cursorPosition = dom.input.selectionStart;
   };
 
   const getCaretCoordinates = (element, position) => {
-    const div = document.createElement("div");
+    if (!caretMirror) {
+      caretMirror = document.createElement("div");
+      caretMirror.style.position = "absolute";
+      caretMirror.style.visibility = "hidden";
+      caretMirror.style.whiteSpace = "pre-wrap";
+      caretMirror.style.overflowWrap = "break-word";
+      caretMirror.style.top = "0";
+      caretMirror.style.left = "-9999px";
+      document.body.appendChild(caretMirror);
+    }
     const style = window.getComputedStyle(element);
     const properties = [
       "direction",
@@ -200,16 +236,11 @@ export const initNepaliConverter = (containerId) => {
       "letterSpacing",
       "wordSpacing",
     ];
-    properties.forEach((prop) => (div.style[prop] = style[prop]));
-    div.style.position = "absolute";
-    div.style.visibility = "hidden";
-    div.style.whiteSpace = "pre-wrap";
-    div.style.wordWrap = "break-word";
-    div.textContent = element.value.substring(0, position);
+    properties.forEach((prop) => (caretMirror.style[prop] = style[prop]));
+    caretMirror.textContent = element.value.substring(0, position);
     const span = document.createElement("span");
     span.textContent = element.value.substring(position) || ".";
-    div.appendChild(span);
-    document.body.appendChild(div);
+    caretMirror.appendChild(span);
     const coords = {
       top:
         span.offsetTop +
@@ -217,7 +248,8 @@ export const initNepaliConverter = (containerId) => {
         element.scrollTop,
       left: span.offsetLeft + parseInt(style.borderLeftWidth || "0"),
     };
-    document.body.removeChild(div);
+    caretMirror.removeChild(span);
+    caretMirror.textContent = "";
     return coords;
   };
 
@@ -239,7 +271,7 @@ export const initNepaliConverter = (containerId) => {
     words[words.length - 1] = word;
     dom.input.value = words.join(" ") + " ";
     dom.suggestionBox.style.display = "none";
-    localStorage.setItem(`nepaliInput_${currentMode}`, dom.input.value);
+    queueStorageWrite(`nepaliInput_${currentMode}`, dom.input.value);
     dom.input.focus();
   };
 
@@ -253,23 +285,21 @@ export const initNepaliConverter = (containerId) => {
       return;
     }
 
+    const fragment = document.createDocumentFragment();
     suggestions.forEach((word, index) => {
       const li = document.createElement("li");
       li.textContent = word;
       li.className = "nepali-converter__suggestion-item";
       li.dataset.index = index;
-      li.addEventListener("mouseenter", () => setSuggestionActive(index));
-      li.addEventListener("mousedown", (e) => {
-        e.preventDefault();
-        selectSuggestion(index);
-      });
-      dom.suggestionBox.appendChild(li);
+      fragment.appendChild(li);
     });
 
     const hint = document.createElement("div");
     hint.className = "nepali-converter__suggestion-hint";
     hint.innerHTML = `Select with <span>TAB</span> <span>ENTER</span> <span>SPACE</span>`;
-    dom.suggestionBox.appendChild(hint);
+    fragment.appendChild(hint);
+
+    dom.suggestionBox.appendChild(fragment);
 
     const coords = getCaretCoordinates(dom.input, cursorPosition);
     dom.suggestionBox.style.top = `${coords.top + 24}px`;
@@ -279,9 +309,24 @@ export const initNepaliConverter = (containerId) => {
     setSuggestionActive(0);
   };
 
+  const handleSuggestionMouseOver = (e) => {
+    const li = e.target.closest(".nepali-converter__suggestion-item");
+    if (!li) return;
+    const idx = parseInt(li.dataset.index, 10);
+    if (!isNaN(idx)) setSuggestionActive(idx);
+  };
+
+  const handleSuggestionMouseDown = (e) => {
+    const li = e.target.closest(".nepali-converter__suggestion-item");
+    if (!li) return;
+    e.preventDefault();
+    const idx = parseInt(li.dataset.index, 10);
+    if (!isNaN(idx)) selectSuggestion(idx);
+  };
+
   const handleInput = () => {
     handleCursorUpdate();
-    localStorage.setItem(`nepaliInput_${currentMode}`, dom.input.value);
+    queueStorageWrite(`nepaliInput_${currentMode}`, dom.input.value);
 
     if (currentMode === "roman2unicode") {
       clearTimeout(debounceTimer);
@@ -305,16 +350,20 @@ export const initNepaliConverter = (containerId) => {
         let suggestions = [];
         let apiFailed = false;
 
+        const token = ++activeFetchToken;
+
         if (!isOffline) {
           try {
             suggestions = await transliterateNepali(currentWord);
             if (suggestions.length === 1 && suggestions[0] === currentWord) {
               apiFailed = true;
             }
-          } catch (error) {
+          } catch {
             apiFailed = true;
           }
         }
+
+        if (token !== activeFetchToken || !dom || !dom.input) return;
 
         if (isOffline || apiFailed) {
           showAlert("⚠️ Offline: Autocomplete paused.", "warning");
@@ -336,7 +385,7 @@ export const initNepaliConverter = (containerId) => {
     if (e.key === "|") {
       e.preventDefault();
       const charToInsert = "।";
-      
+
       const val = dom.input.value;
       const start = dom.input.selectionStart;
       const end = dom.input.selectionEnd;
@@ -346,7 +395,7 @@ export const initNepaliConverter = (containerId) => {
       dom.input.value = before + charToInsert + after;
       cursorPosition = start + charToInsert.length;
       dom.input.setSelectionRange(cursorPosition, cursorPosition);
-      localStorage.setItem(`nepaliInput_${currentMode}`, dom.input.value);
+      queueStorageWrite(`nepaliInput_${currentMode}`, dom.input.value);
 
       dom.suggestionBox.style.display = "none";
       dom.input.dispatchEvent(new Event("input"));
@@ -356,7 +405,7 @@ export const initNepaliConverter = (containerId) => {
     if (e.shiftKey && /^[B-DF-HJ-NP-TV-Z]$/.test(e.key)) {
       e.preventDefault();
       const charToInsert = e.key.toLowerCase() + "\\";
-      
+
       const val = dom.input.value;
       const start = dom.input.selectionStart;
       const end = dom.input.selectionEnd;
@@ -366,7 +415,7 @@ export const initNepaliConverter = (containerId) => {
       dom.input.value = before + charToInsert + after;
       cursorPosition = start + charToInsert.length;
       dom.input.setSelectionRange(cursorPosition, cursorPosition);
-      localStorage.setItem(`nepaliInput_${currentMode}`, dom.input.value);
+      queueStorageWrite(`nepaliInput_${currentMode}`, dom.input.value);
 
       dom.suggestionBox.style.display = "none";
       dom.input.dispatchEvent(new Event("input"));
@@ -414,7 +463,7 @@ export const initNepaliConverter = (containerId) => {
     dom.input.focus();
     dom.input.setSelectionRange(cursorPosition, cursorPosition);
 
-    localStorage.setItem(`nepaliInput_${currentMode}`, dom.input.value);
+    queueStorageWrite(`nepaliInput_${currentMode}`, dom.input.value);
     syncOutput();
   };
 
@@ -515,6 +564,8 @@ export const initNepaliConverter = (containerId) => {
       btn.addEventListener("click", handleCopyClick),
     );
     dom.modes.addEventListener("change", handleModeChange);
+    dom.suggestionBox.addEventListener("mouseover", handleSuggestionMouseOver);
+    dom.suggestionBox.addEventListener("mousedown", handleSuggestionMouseDown);
     document.addEventListener("click", closeSuggestionsOnClickOutside);
   };
 
@@ -528,29 +579,62 @@ export const initNepaliConverter = (containerId) => {
   };
 
   const destroy = () => {
-    if (dom.input) {
+    activeFetchToken++;
+    flushStorageWrite();
+
+    if (dom && dom.input) {
       dom.input.removeEventListener("input", handleInput);
       dom.input.removeEventListener("click", handleCursorUpdate);
       dom.input.removeEventListener("keyup", handleCursorUpdate);
       dom.input.removeEventListener("keydown", handleKeydown);
     }
-    if (dom.toolbar)
+    if (dom && dom.toolbar)
       dom.toolbar.removeEventListener("click", handleToolbarClick);
-    if (dom.networkModeBtn)
+    if (dom && dom.networkModeBtn)
       dom.networkModeBtn.removeEventListener("click", handleNetworkModeClick);
-    if (dom.copyBtns)
+    if (dom && dom.copyBtns)
       dom.copyBtns.forEach((btn) =>
         btn.removeEventListener("click", handleCopyClick),
       );
-    if (dom.modes) dom.modes.removeEventListener("change", handleModeChange);
+    if (dom && dom.modes)
+      dom.modes.removeEventListener("change", handleModeChange);
+    if (dom && dom.suggestionBox) {
+      dom.suggestionBox.removeEventListener(
+        "mouseover",
+        handleSuggestionMouseOver,
+      );
+      dom.suggestionBox.removeEventListener(
+        "mousedown",
+        handleSuggestionMouseDown,
+      );
+    }
     document.removeEventListener("click", closeSuggestionsOnClickOutside);
 
-    if (alertTimeout) clearTimeout(alertTimeout);
-    if (debounceTimer) clearTimeout(debounceTimer);
-    if (phoneticFallback) phoneticFallback.destroy();
+    if (alertTimeout) {
+      clearTimeout(alertTimeout);
+      alertTimeout = null;
+    }
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    if (storageWriteTimer) {
+      clearTimeout(storageWriteTimer);
+      storageWriteTimer = null;
+    }
+    if (phoneticFallback) {
+      phoneticFallback.destroy();
+      phoneticFallback = null;
+    }
+
+    if (caretMirror && caretMirror.parentNode) {
+      caretMirror.parentNode.removeChild(caretMirror);
+    }
+    caretMirror = null;
 
     container.innerHTML = "";
     dom = null;
+    currentSuggestions = [];
   };
 
   render();
