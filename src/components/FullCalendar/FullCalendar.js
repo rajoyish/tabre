@@ -213,7 +213,7 @@ export async function initMonthView(container) {
 
     const index = parseInt(li.dataset.index, 10);
     const monthObj = calendarData.months[currentMonthIndex];
-    const dateObj = monthObj.days[index];
+    const dateObj = { ...monthObj.days[index], monthNp: monthObj.monthNp };
 
     showDateModal(dateObj, calendarData);
   });

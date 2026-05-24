@@ -23,26 +23,31 @@ export function initDateModal() {
 
 export function showDateModal(dateObj, calendarData) {
   const dialog = initDateModal();
-  let monthObj = calendarData.months.find((m) => m.monthNp === dateObj.monthNp);
+  const monthObj = calendarData.months.find(
+    (m) => m.monthNp === dateObj.monthNp,
+  );
 
   if (!monthObj) {
-    for (const m of calendarData.months) {
-      if (
-        m.days.some(
-          (d) => d.dateEn === dateObj.dateEn && d.dateNp === dateObj.dateNp,
-        )
-      ) {
-        monthObj = m;
-        break;
-      }
-    }
+    console.warn(
+      "showDateModal: could not resolve month for dateObj",
+      dateObj,
+      "— callers must pass a dateObj with a valid monthNp.",
+    );
+    return;
   }
-
-  if (!monthObj) return;
 
   const dateIndex = monthObj.days.findIndex(
     (d) => d.dateEn === dateObj.dateEn && d.dateNp === dateObj.dateNp,
   );
+
+  if (dateIndex === -1) {
+    console.warn(
+      "showDateModal: dateObj not found in resolved month",
+      dateObj,
+      monthObj.monthNp,
+    );
+    return;
+  }
   const yearNp = calendarData.yearNp;
   let isSecondMonth = false;
 
