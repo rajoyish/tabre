@@ -1,6 +1,8 @@
 import "./TaskReminder.css";
 
+let cachedEmojiIcon = null;
 const getEmojiIcon = () => {
+  if (cachedEmojiIcon) return cachedEmojiIcon;
   const canvas = document.createElement("canvas");
   canvas.width = 64;
   canvas.height = 64;
@@ -9,8 +11,12 @@ const getEmojiIcon = () => {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("🔔", 32, 36);
-  return canvas.toDataURL("image/png");
+  cachedEmojiIcon = canvas.toDataURL("image/png");
+  return cachedEmojiIcon;
 };
+
+const isExtension =
+  typeof chrome !== "undefined" && !!chrome.alarms && !!chrome.notifications;
 
 export function createTaskReminder() {
   let notificationSound;
@@ -24,7 +30,7 @@ export function createTaskReminder() {
   }
 
   let reminderEndTime = null;
-  let countdownRAF = null;
+  let countdownInterval = null;
   let reminderTimeout = null;
   let soundTimeout = null;
   let audio = null;
@@ -37,6 +43,7 @@ export function createTaskReminder() {
   const PAST_REMINDERS_KEY = "pastReminders";
   const ACTIVE_REMINDER_KEY = "activeReminder";
   const MAX_PAST_REMINDERS = 6;
+  const COUNTDOWN_TICK_MS = 500;
 
   function requestNotificationPermission() {
     if (
@@ -48,24 +55,11 @@ export function createTaskReminder() {
     }
   }
 
-  function showNotification(title, body) {
-    const iconUrl = getEmojiIcon();
-
-    if (typeof chrome !== "undefined" && chrome.notifications) {
-      chrome.notifications.create(`rem-${Date.now()}`, {
-        type: "basic",
-        iconUrl: iconUrl,
-        title: title,
-        message: body,
-        requireInteraction: true,
-      });
-    } else if (
-      "Notification" in window &&
-      Notification.permission === "granted"
-    ) {
+  function showWebNotification(title, body) {
+    if ("Notification" in window && Notification.permission === "granted") {
       new Notification(title, {
-        body: body,
-        icon: iconUrl,
+        body,
+        icon: getEmojiIcon(),
         requireInteraction: true,
       });
     }
@@ -236,11 +230,7 @@ export function createTaskReminder() {
     }
 
     function updateResetBtnText() {
-      if (isSoundPlaying) {
-        resetBtn.textContent = "Stop Sound";
-      } else {
-        resetBtn.textContent = "Reset";
-      }
+      resetBtn.textContent = isSoundPlaying ? "Stop Sound" : "Reset";
     }
 
     function playSound() {
@@ -259,7 +249,7 @@ export function createTaskReminder() {
             isSoundPlaying = false;
             updateResetBtnText();
           });
-      } catch (error) {
+      } catch {
         isSoundPlaying = false;
         updateResetBtnText();
       }
@@ -269,55 +259,77 @@ export function createTaskReminder() {
       if (audio) {
         try {
           audio.pause();
+          audio.loop = false;
           audio.currentTime = 0;
-          audio = null;
-        } catch (error) {}
+          audio.src = "";
+          audio.removeAttribute("src");
+          audio.load();
+        } catch {}
+        audio = null;
       }
       isSoundPlaying = false;
       updateResetBtnText();
     }
 
-    function startCountdown(task) {
-      if (reminderTimeout) clearTimeout(reminderTimeout);
-      if (soundTimeout) clearTimeout(soundTimeout);
-
-      function update() {
-        if (!reminderEndTime) return;
-        const msLeft = reminderEndTime - Date.now();
-
-        if (msLeft <= 0) {
-          updateDisplay(task, "00:00");
-          localStorage.removeItem(ACTIVE_REMINDER_KEY);
-          return;
-        }
-
-        const formatted = formatTime(msLeft);
-        if (displayTime.textContent !== formatted) {
-          updateDisplay(task, formatted);
-        }
-        countdownRAF = requestAnimationFrame(update);
+    function clearTimers() {
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
       }
-      countdownRAF = requestAnimationFrame(update);
+      if (reminderTimeout) {
+        clearTimeout(reminderTimeout);
+        reminderTimeout = null;
+      }
+      if (soundTimeout) {
+        clearTimeout(soundTimeout);
+        soundTimeout = null;
+      }
+    }
+
+    function tickDisplay(task) {
+      if (!reminderEndTime) return;
+      const msLeft = reminderEndTime - Date.now();
+      if (msLeft <= 0) {
+        updateDisplay(task, "00:00");
+        if (countdownInterval) {
+          clearInterval(countdownInterval);
+          countdownInterval = null;
+        }
+        return;
+      }
+      const formatted = formatTime(msLeft);
+      if (displayTime.textContent !== formatted) {
+        updateDisplay(task, formatted);
+      }
+    }
+
+    function startCountdown(task) {
+      clearTimers();
+
+      tickDisplay(task);
+      countdownInterval = setInterval(
+        () => tickDisplay(task),
+        COUNTDOWN_TICK_MS,
+      );
 
       const msToSound = Math.max(0, reminderEndTime - Date.now() - 500);
       soundTimeout = setTimeout(() => {
+        soundTimeout = null;
         if (soundEnabled) playSound();
       }, msToSound);
 
-      const msToEnd = reminderEndTime - Date.now();
+      const msToEnd = Math.max(0, reminderEndTime - Date.now());
       reminderTimeout = setTimeout(() => {
+        reminderTimeout = null;
         updateDisplay(task, "00:00");
+        localStorage.removeItem(ACTIVE_REMINDER_KEY);
 
-        if (typeof chrome !== "undefined" && chrome.alarms) {
-          chrome.alarms.clear("task-reminder");
-        } else {
-          showNotification(
+        if (!isExtension) {
+          showWebNotification(
             `Time to ${task}! ✅`,
             "Your reminder session is complete.",
           );
         }
-
-        localStorage.removeItem(ACTIVE_REMINDER_KEY);
       }, msToEnd);
     }
 
@@ -326,6 +338,8 @@ export function createTaskReminder() {
       soundEnabled = soundCheckbox?.checked ?? true;
       lastTask = task;
       reminderEndTime = Date.now() + Number(minutes) * 60 * 1000;
+
+      stopSound();
 
       localStorage.setItem(
         ACTIVE_REMINDER_KEY,
@@ -336,7 +350,7 @@ export function createTaskReminder() {
         }),
       );
 
-      if (typeof chrome !== "undefined" && chrome.alarms) {
+      if (isExtension) {
         chrome.alarms.create("task-reminder", {
           delayInMinutes: Number(minutes),
         });
@@ -348,10 +362,6 @@ export function createTaskReminder() {
           });
         }
       }
-
-      if (countdownRAF) cancelAnimationFrame(countdownRAF);
-      if (reminderTimeout) clearTimeout(reminderTimeout);
-      if (soundTimeout) clearTimeout(soundTimeout);
 
       startCountdown(task);
 
@@ -368,7 +378,7 @@ export function createTaskReminder() {
       reminderEndTime = null;
       localStorage.removeItem(ACTIVE_REMINDER_KEY);
 
-      if (typeof chrome !== "undefined" && chrome.alarms) {
+      if (isExtension) {
         chrome.alarms.clear("task-reminder");
         if (chrome.storage) {
           chrome.storage.local.remove([
@@ -379,15 +389,10 @@ export function createTaskReminder() {
         }
       }
 
-      if (countdownRAF) cancelAnimationFrame(countdownRAF);
-      if (reminderTimeout) clearTimeout(reminderTimeout);
-      if (soundTimeout) clearTimeout(soundTimeout);
-
+      clearTimers();
       if (stopSoundNow) stopSound();
 
       hideModal();
-      isSoundPlaying = false;
-      updateResetBtnText();
     }
 
     function handleFormSubmit(e) {
@@ -407,13 +412,38 @@ export function createTaskReminder() {
           lastTask = saved.task;
           reminderEndTime = saved.reminderEndTime;
           soundEnabled = saved.soundEnabled;
+
+          if (isExtension) {
+            chrome.alarms.create("task-reminder", {
+              when: saved.reminderEndTime,
+            });
+            if (chrome.storage) {
+              chrome.storage.local.set({
+                reminderTask: saved.task,
+                reminderSound: saved.soundEnabled,
+                reminderIcon: getEmojiIcon(),
+              });
+            }
+          }
+
           startCountdown(lastTask);
         } else if (saved) {
           localStorage.removeItem(ACTIVE_REMINDER_KEY);
         }
-      } catch (e) {
+      } catch {
         localStorage.removeItem(ACTIVE_REMINDER_KEY);
       }
+    }
+
+    function handleVisibilityChange() {
+      if (!document.hidden && reminderEndTime && reminderEndTime > Date.now()) {
+        tickDisplay(lastTask);
+      }
+    }
+
+    function handlePageHide() {
+      clearTimers();
+      stopSound();
     }
 
     setBtn.addEventListener("click", showModal);
@@ -459,6 +489,9 @@ export function createTaskReminder() {
         }
       });
     }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handlePageHide, { once: true });
 
     modal.classList.add("hidden");
     form.classList.add("hidden");
