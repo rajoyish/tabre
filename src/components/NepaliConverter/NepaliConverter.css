@@ -1,372 +1,407 @@
 @font-face {
-    font-family: "Nagarik";
-    src: url("../../assets/Nagarik.ttf") format("truetype");
+  font-family: "Nagarik";
+  src: url("../../assets/Nagarik.ttf") format("truetype");
 }
 
 .nepali-converter {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    color: inherit;
-    padding: 2rem;
-    border-radius: 12px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: inherit;
+  padding: 2rem;
+  border-radius: 12px;
 }
 
 .nepali-converter__modes {
-    display: flex;
-    gap: 3rem;
-    justify-content: center;
-    align-items: center;
-    background-color: var(--bg-color, rgba(255, 255, 255, 0.05));
-    padding: 1rem;
-    border-radius: 0.5rem;
+  display: flex;
+  gap: 3rem;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--bg-color, rgba(255, 255, 255, 0.05));
+  padding: 1rem;
+  border-radius: 0.5rem;
 }
 
 @media (max-width: 768px) {
-    .nepali-converter__modes {
-        flex-direction: column;
-        gap: 1.5rem;
-    }
+  .nepali-converter__modes {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
 }
 
 .toggle-switch {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1.5rem;
-    justify-content: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
 }
 
 .toggle-switch__label {
-    font-size: 1.2rem;
-    font-weight: 500;
-    opacity: 0.5;
-    transition:
-        opacity 0.3s ease,
-        color 0.3s ease;
-    font-family: "Mona Sans", sans-serif;
+  font-size: 1.2rem;
+  font-weight: 500;
+  opacity: 0.5;
+  transition:
+    opacity 0.3s ease,
+    color 0.3s ease;
+  font-family: "Mona Sans", sans-serif;
 }
 
 .toggle-switch__label--active {
-    opacity: 1;
-    color: var(--accent-sky);
+  opacity: 1;
+  color: var(--accent-sky);
 }
 
 .toggle-switch__input {
-    opacity: 0;
-    position: absolute;
-    left: -9999px;
+  opacity: 0;
+  position: absolute;
+  left: -9999px;
 }
 
 .toggle-switch__slider {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    width: 3.2rem;
-    height: 1.8rem;
-    background: var(--dark-black);
-    border-radius: 1rem;
-    transition:
-        background 0.3s ease,
-        border-color 0.3s ease;
-    cursor: pointer;
-    border: 2px solid var(--accent-sky);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 3.2rem;
+  height: 1.8rem;
+  background: var(--dark-black);
+  border-radius: 1rem;
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease;
+  cursor: pointer;
+  border: 2px solid var(--accent-sky);
 }
 
 .toggle-switch__slider::before {
-    content: "";
-    position: absolute;
-    left: 0.15rem;
-    width: 1.25rem;
-    height: 1.25rem;
-    background: var(--accent-sky);
-    border-radius: 50%;
-    transition:
-        transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-        background 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  content: "";
+  position: absolute;
+  left: 0.15rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  background: var(--accent-sky);
+  border-radius: 50%;
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .toggle-switch__input:checked + .toggle-switch__slider {
-    background: var(--dark-green);
-    border-color: var(--accent-green);
+  background: var(--dark-green);
+  border-color: var(--accent-green);
 }
 
 .toggle-switch__input:checked + .toggle-switch__slider::before {
-    transform: translateX(1.4rem);
-    background: var(--accent-green);
+  transform: translateX(1.4rem);
+  background: var(--accent-green);
 }
 
 .toggle-switch__input:focus-visible + .toggle-switch__slider {
-    outline: 2px solid var(--accent-sky);
-    outline-offset: 4px;
+  outline: 2px solid var(--accent-sky);
+  outline-offset: 4px;
 }
 
 .nepali-converter__alert {
-    font-family: "Mona Sans", sans-serif;
-    max-width: fit-content;
-    margin: 1rem auto;
-    color: #ffffff;
-    padding: 0.5rem 1rem;
-    border-radius: 2rem;
-    text-align: center;
-    font-size: 0.875rem;
-    opacity: 0;
-    visibility: hidden;
-    transition:
-        opacity 0.3s ease,
-        visibility 0.3s ease,
-        transform 0.3s ease;
-    transform: translateY(-10px);
+  font-family: "Mona Sans", sans-serif;
+  max-width: fit-content;
+  margin: 1rem auto;
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  text-align: center;
+  font-size: 0.875rem;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease,
+    transform 0.3s ease;
+  transform: translateY(-10px);
 }
 
 .nepali-converter__alert--success {
-    background-color: var(--accent-green, #16a34a);
+  background-color: var(--accent-green, #16a34a);
 }
 
 .nepali-converter__alert--warning {
-    background-color: #f59e0b;
-    color: #ffffff;
+  background-color: #f59e0b;
+  color: #ffffff;
 }
 
 .nepali-converter__alert--visible {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
 }
 
 .nepali-converter__input-group {
-    position: relative;
-    width: 100%;
+  position: relative;
+  width: 100%;
 }
 
 .nepali-converter__input-group--hidden {
-    display: none !important;
+  display: none !important;
 }
 
 .nepali-converter__textarea {
-    display: block;
-    width: 100%;
-    min-height: 12rem;
-    resize: vertical;
-    padding: 1rem;
-    padding-bottom: 3.5rem;
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.2));
-    border-radius: 0.5rem;
-    outline: none;
-    background-color: var(--bg-color, rgba(255, 255, 255, 0.1));
-    color: inherit;
-    transition:
-        box-shadow 0.2s,
-        border-color 0.2s,
-        background-color 0.2s;
+  display: block;
+  width: 100%;
+  min-height: 12rem;
+  resize: vertical;
+  padding: 1rem;
+  padding-bottom: 3.5rem;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.2));
+  border-radius: 0.5rem;
+  outline: none;
+  background-color: var(--bg-color, rgba(255, 255, 255, 0.1));
+  color: inherit;
+  transition:
+    box-shadow 0.2s,
+    border-color 0.2s,
+    background-color 0.2s;
 }
 
 .nepali-converter__textarea:focus {
-    border-color: var(--primary-color, #2563eb);
-    background-color: var(--bg-color-focus, rgba(255, 255, 255, 0.15));
-    box-shadow: 0 0 0 2px var(--primary-color-alpha, rgba(37, 99, 235, 0.3));
+  border-color: var(--primary-color, #2563eb);
+  background-color: var(--bg-color-focus, rgba(255, 255, 255, 0.15));
+  box-shadow: 0 0 0 2px var(--primary-color-alpha, rgba(37, 99, 235, 0.3));
 }
 
 .nepali-converter__textarea--preeti {
-    font-family: "Nagarik", sans-serif;
-    font-size: 1.5rem;
+  font-family: "Nagarik", sans-serif;
+  font-size: 1.5rem;
 }
 
 .nepali-converter__textarea--unicode {
-    font-family: "Anek Devanagari", sans-serif;
-    font-weight: 300;
-    font-size: 1.1rem;
+  font-family: "Anek Devanagari", sans-serif;
+  font-weight: 300;
+  font-size: 1.1rem;
 }
 
 .nepali-converter__textarea--target {
-    background-color: var(--bg-color-alt, rgba(0, 0, 0, 0.1));
+  background-color: var(--bg-color-alt, rgba(0, 0, 0, 0.1));
 }
 
 .nepali-converter__toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    font-family: "Anek Devanagari", sans-serif;
-    justify-content: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-family: "Anek Devanagari", sans-serif;
+  justify-content: center;
 }
 
 .nepali-converter__char-btn {
-    font-family: inherit;
-    background-color: var(--btn-bg, rgba(255, 255, 255, 0.1));
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.2));
-    padding: 0.4rem 0.75rem;
-    font-size: 1.1rem;
-    border-radius: 0.25rem;
-    color: inherit;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  font-family: inherit;
+  background-color: var(--btn-bg, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.2));
+  padding: 0.4rem 0.75rem;
+  font-size: 1.1rem;
+  border-radius: 0.25rem;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .nepali-converter__char-btn:hover {
-    background-color: var(--btn-bg-hover, rgba(255, 255, 255, 0.25));
-    transform: translateY(-1px);
+  background-color: var(--btn-bg-hover, rgba(255, 255, 255, 0.25));
+  transform: translateY(-1px);
 }
 
 .nepali-converter__char-btn:active {
-    transform: translateY(1px);
+  transform: translateY(1px);
 }
 
 .nepali-converter__copy-bar {
-    position: absolute;
-    bottom: 1rem;
-    left: 1rem;
-    display: flex;
-    gap: 0.5rem;
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  display: flex;
+  gap: 0.5rem;
 }
 
 .nepali-converter__copy-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 0.25rem;
-    background-color: var(--dark-black);
-    color: var(--accent-sky);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    cursor: pointer;
-    transition:
-        background-color 0.2s,
-        color 0.2s,
-        transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.25rem;
+  background-color: var(--dark-black);
+  color: var(--accent-sky);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    transform 0.1s;
 }
 
 .nepali-converter__copy-btn:hover {
-    background-color: var(--dark-green);
-    color: #ffffff;
+  background-color: var(--dark-green);
+  color: #ffffff;
 }
 
 .nepali-converter__copy-btn:active {
-    transform: scale(0.95);
+  transform: scale(0.95);
 }
 
 .copy-icon-active {
-    display: none;
+  display: none;
 }
 
 .nepali-converter__copy-btn:hover .copy-icon-default,
 .nepali-converter__copy-btn:active .copy-icon-default,
 .nepali-converter__copy-btn.is-copied .copy-icon-default {
-    display: none;
+  display: none;
 }
 
 .nepali-converter__copy-btn:hover .copy-icon-active,
 .nepali-converter__copy-btn:active .copy-icon-active,
 .nepali-converter__copy-btn.is-copied .copy-icon-active {
-    display: inline-block;
+  display: inline-block;
 }
 
 .nepali-converter__mode-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    height: 2.25rem;
-    padding: 0 0.75rem;
-    border-radius: 0.25rem;
-    font-family: "Mona Sans", sans-serif;
-    font-size: 0.75rem;
-    font-weight: 600;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    cursor: pointer;
-    transition:
-        background-color 0.2s,
-        color 0.2s,
-        transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  border-radius: 0.25rem;
+  font-family: "Mona Sans", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    transform 0.1s;
 }
 
 .nepali-converter__mode-btn:active {
-    transform: scale(0.95);
+  transform: scale(0.95);
 }
 
 .nepali-converter__mode-btn--online {
-    background-color: var(--accent-green, #16a34a);
-    color: #ffffff;
+  background-color: var(--accent-green, #16a34a);
+  color: #ffffff;
 }
 
 .nepali-converter__mode-btn--offline {
-    background-color: var(--dark-black, #1a1a1a);
-    color: var(--accent-sky, #38bdf8);
+  background-color: var(--dark-black, #1a1a1a);
+  color: var(--accent-sky, #38bdf8);
 }
 
 .nepali-converter__suggestions {
-    position: absolute;
-    list-style: none;
-    margin: 0;
-    padding: 4px 0;
-    background: #ffffff;
-    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-    z-index: 9999;
-    min-width: 180px;
-    display: none;
+  position: absolute;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  background: #ffffff;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  min-width: 180px;
+  max-width: min(320px, calc(100% - 16px));
+  max-height: 60vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  display: none;
 }
 
 .nepali-converter__suggestion-item {
-    padding: 8px 14px;
-    cursor: pointer;
-    color: var(--dark-black, #1a1a1a);
-    font-family: "Anek Devanagari", sans-serif;
-    font-size: 16px;
-    transition: background 0.15s;
+  padding: 8px 14px;
+  cursor: pointer;
+  color: var(--dark-black, #1a1a1a);
+  font-family: "Anek Devanagari", sans-serif;
+  font-size: 16px;
+  transition: background 0.15s;
 }
 
 .nepali-converter__suggestion-item--active {
-    background-color: rgba(0, 0, 0, 0.08);
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
-.nepali-converter__suggestion-hint {
-    font-family: "Mona Sans", sans-serif;
-    font-size: 0.75rem;
-    color: #666;
-    padding: 8px 14px 4px;
-    border-top: 1px solid #eee;
-    margin-top: 4px;
-    display: flex;
-    gap: 4px;
-    align-items: center;
+.nepali-converter__keys-hint {
+  font-family: "Mona Sans", sans-serif;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  line-height: 1.7;
 }
 
-.nepali-converter__suggestion-hint span {
-    background: #e2e8f0;
-    color: #334155;
-    padding: 2px 5px;
-    border-radius: 4px;
-    font-size: 0.65rem;
-    font-weight: 700;
+.nepali-converter__keys-hint[hidden] {
+  display: none;
+}
+
+.nepali-converter__keys-hint span {
+  background: rgba(255, 255, 255, 0.18);
+  color: inherit;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+body.no-glass .nepali-converter__keys-hint {
+  color: white;
+}
+
+body.no-glass .nepali-converter__keys-hint span {
+  background: var(--dark-black, #1a1a1a);
+  color: var(--accent-sky, #38bdf8);
+}
+
+@media (max-width: 600px) {
+  .nepali-converter__suggestions {
+    min-width: 0;
+    max-width: calc(100% - 16px);
+    font-size: 0.95rem;
+  }
+
+  .nepali-converter__suggestion-item {
+    padding: 10px 14px;
+    font-size: 15px;
+  }
+
+  .nepali-converter__keys-hint {
+    font-size: 0.7rem;
+  }
 }
 
 body.no-glass .nepali-converter__textarea {
-    background-color: white;
-    color: var(--dark-black);
+  background-color: white;
+  color: var(--dark-black);
 }
 
 body.no-glass .nepali-converter__char-btn {
-    background-color: var(--dark-black);
-    color: var(--accent-sky);
+  background-color: var(--dark-black);
+  color: var(--accent-sky);
 }
 
 body.no-glass .nepali-converter__char-btn:hover {
-    background-color: var(--dark-green);
-    color: white;
+  background-color: var(--dark-green);
+  color: white;
 }
 
 body.no-glass .nepali-converter__mode-btn--offline {
-    background-color: #1a1a1a;
-    color: var(--accent-sky);
+  background-color: #1a1a1a;
+  color: var(--accent-sky);
 }
 
 .nepali-converter__textarea::placeholder {
-    color: white;
+  color: white;
 }
 
 body.no-glass .nepali-converter__textarea::placeholder {
-    color: var(--dark-black);
+  color: var(--dark-black);
 }

@@ -62,6 +62,12 @@ export const initNepaliConverter = (containerId) => {
           </div>
           <ul id="suggestionBox" class="nepali-converter__suggestions"></ul>
         </div>
+        <div class="nepali-converter__keys-hint" id="keysHint" hidden>
+          <span>↑</span> <span>↓</span> to navigate,
+          <span>SPACE</span> <span>TAB</span> to select,
+          <span>ENTER</span> for new line,
+          <span>.</span> for ।
+        </div>
 
         <div class="nepali-converter__toolbar" id="charToolbar">
           <button type="button" class="nepali-converter__char-btn" data-char="ङ">ङ</button>
@@ -113,6 +119,7 @@ export const initNepaliConverter = (containerId) => {
       inputGroupSource: document.getElementById("inputGroupSource"),
       alert: document.getElementById("copyAlert"),
       suggestionBox: document.getElementById("suggestionBox"),
+      keysHint: document.getElementById("keysHint"),
     };
     phoneticFallback = NepaliPhoneticMap(dom.input, dom.inputGroupSource);
   };
@@ -131,6 +138,7 @@ export const initNepaliConverter = (containerId) => {
       dom.copyBarSource.style.display = "none";
       dom.toolbar.style.display = "flex";
       dom.output.readOnly = true;
+      if (dom.keysHint) dom.keysHint.hidden = true;
       phoneticFallback.hide();
     } else if (currentMode === "unicode2preeti") {
       dom.input.className =
@@ -145,6 +153,7 @@ export const initNepaliConverter = (containerId) => {
       dom.copyBarSource.style.display = "none";
       dom.toolbar.style.display = "flex";
       dom.output.readOnly = true;
+      if (dom.keysHint) dom.keysHint.hidden = true;
       phoneticFallback.hide();
     } else if (currentMode === "roman2unicode") {
       dom.input.className =
@@ -156,6 +165,7 @@ export const initNepaliConverter = (containerId) => {
       dom.copyBarSource.style.display = "flex";
       dom.toolbar.style.display = "none";
       dom.output.readOnly = false;
+      if (dom.keysHint) dom.keysHint.hidden = false;
     }
   };
 
@@ -268,7 +278,7 @@ export const initNepaliConverter = (containerId) => {
     const val = dom.input.value;
     const caret = dom.input.selectionStart;
     let start = caret;
-    while (start > 0 && !/\s/.test(val[start - 1])) {
+    while (start > 0 && !/[\s।॥]/.test(val[start - 1])) {
       start--;
     }
     return { start, end: caret, word: val.substring(start, caret) };
@@ -310,17 +320,26 @@ export const initNepaliConverter = (containerId) => {
       fragment.appendChild(li);
     });
 
-    const hint = document.createElement("div");
-    hint.className = "nepali-converter__suggestion-hint";
-    hint.innerHTML = `<span>↑</span> <span>↓</span> to navigate, <span>SPACE</span> <span>TAB</span> to select, <span>ENTER</span> for new line`;
-    fragment.appendChild(hint);
-
     dom.suggestionBox.appendChild(fragment);
 
     const coords = getCaretCoordinates(dom.input, cursorPosition);
+    const viewportPadding = 8;
+    const inputRect = dom.input.getBoundingClientRect();
+
+    dom.suggestionBox.style.maxWidth = "";
+    dom.suggestionBox.style.left = "0";
     dom.suggestionBox.style.top = `${coords.top + 24}px`;
-    dom.suggestionBox.style.left = `${coords.left + 16}px`;
     dom.suggestionBox.style.display = "block";
+
+    const boxRect = dom.suggestionBox.getBoundingClientRect();
+    const boxWidth = boxRect.width;
+    const maxLeftWithinInput = Math.max(
+      0,
+      inputRect.width - boxWidth - viewportPadding,
+    );
+    const desiredLeft = coords.left + 16;
+    const clampedLeft = Math.min(desiredLeft, maxLeftWithinInput);
+    dom.suggestionBox.style.left = `${Math.max(0, clampedLeft)}px`;
   };
 
   const handleSuggestionMouseOver = (e) => {
@@ -394,6 +413,36 @@ export const initNepaliConverter = (containerId) => {
 
   const handleKeydown = (e) => {
     if (currentMode !== "roman2unicode") return;
+
+    if (e.key === ".") {
+      e.preventDefault();
+
+      const val = dom.input.value;
+      const start = dom.input.selectionStart;
+      const end = dom.input.selectionEnd;
+
+      let newVal;
+      let newCaret;
+
+      if (start === end && start > 0 && val[start - 1] === "।") {
+        newVal = val.substring(0, start - 1) + "." + val.substring(end);
+        newCaret = start;
+      } else {
+        const charToInsert = "।";
+        newVal = val.substring(0, start) + charToInsert + val.substring(end);
+        newCaret = start + charToInsert.length;
+      }
+
+      dom.input.value = newVal;
+      cursorPosition = newCaret;
+      dom.input.setSelectionRange(newCaret, newCaret);
+      queueStorageWrite(`nepaliInput_${currentMode}`, dom.input.value);
+
+      dom.suggestionBox.style.display = "none";
+      activeIndex = -1;
+      dom.input.dispatchEvent(new Event("input"));
+      return;
+    }
 
     if (e.key === "|") {
       e.preventDefault();
