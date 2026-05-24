@@ -264,13 +264,29 @@ export const initNepaliConverter = (containerId) => {
     }
   };
 
+  const getCurrentWordBounds = () => {
+    const val = dom.input.value;
+    const caret = dom.input.selectionStart;
+    let start = caret;
+    while (start > 0 && !/\s/.test(val[start - 1])) {
+      start--;
+    }
+    return { start, end: caret, word: val.substring(start, caret) };
+  };
+
   const selectSuggestion = (index) => {
     const word = currentSuggestions[index];
     if (!word) return;
-    const words = dom.input.value.split(/\s+/);
-    words[words.length - 1] = word;
-    dom.input.value = words.join(" ") + " ";
+    const { start, end } = getCurrentWordBounds();
+    const val = dom.input.value;
+    const replacement = word + " ";
+    dom.input.value =
+      val.substring(0, start) + replacement + val.substring(end);
+    const newCaret = start + replacement.length;
+    dom.input.setSelectionRange(newCaret, newCaret);
+    cursorPosition = newCaret;
     dom.suggestionBox.style.display = "none";
+    activeIndex = -1;
     queueStorageWrite(`nepaliInput_${currentMode}`, dom.input.value);
     dom.input.focus();
   };
@@ -296,7 +312,7 @@ export const initNepaliConverter = (containerId) => {
 
     const hint = document.createElement("div");
     hint.className = "nepali-converter__suggestion-hint";
-    hint.innerHTML = `Select with <span>TAB</span> <span>ENTER</span> <span>SPACE</span>`;
+    hint.innerHTML = `<span>↑</span> <span>↓</span> to navigate, <span>SPACE</span> <span>TAB</span> to select, <span>ENTER</span> for new line`;
     fragment.appendChild(hint);
 
     dom.suggestionBox.appendChild(fragment);
@@ -305,8 +321,6 @@ export const initNepaliConverter = (containerId) => {
     dom.suggestionBox.style.top = `${coords.top + 24}px`;
     dom.suggestionBox.style.left = `${coords.left + 16}px`;
     dom.suggestionBox.style.display = "block";
-
-    setSuggestionActive(0);
   };
 
   const handleSuggestionMouseOver = (e) => {
@@ -330,10 +344,9 @@ export const initNepaliConverter = (containerId) => {
 
     if (currentMode === "roman2unicode") {
       clearTimeout(debounceTimer);
-      const words = dom.input.value.split(/\s+/);
-      const currentWord = words[words.length - 1];
+      const { word: currentWord } = getCurrentWordBounds();
 
-      if (!currentWord.trim()) {
+      if (!currentWord || currentWord.length < 2) {
         dom.suggestionBox.style.display = "none";
         phoneticFallback.hide();
         return;
@@ -433,17 +446,28 @@ export const initNepaliConverter = (containerId) => {
 
     const items = dom.suggestionBox.querySelectorAll("li");
 
-    if (["Enter", "Tab", " "].includes(e.key) && activeIndex >= 0) {
+    if (e.key === "ArrowDown") {
       e.preventDefault();
-      selectSuggestion(activeIndex);
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setSuggestionActive(Math.min(activeIndex + 1, items.length - 1));
+      const next =
+        activeIndex < 0 ? 0 : Math.min(activeIndex + 1, items.length - 1);
+      setSuggestionActive(next);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setSuggestionActive(Math.max(activeIndex - 1, 0));
+      const prev =
+        activeIndex < 0 ? items.length - 1 : Math.max(activeIndex - 1, 0);
+      setSuggestionActive(prev);
+    } else if (e.key === "Tab" || e.key === " ") {
+      const idx = activeIndex >= 0 ? activeIndex : 0;
+      if (currentSuggestions[idx]) {
+        e.preventDefault();
+        selectSuggestion(idx);
+      }
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      e.preventDefault();
+      selectSuggestion(activeIndex);
     } else if (e.key === "Escape") {
       dom.suggestionBox.style.display = "none";
+      activeIndex = -1;
     }
   };
 
